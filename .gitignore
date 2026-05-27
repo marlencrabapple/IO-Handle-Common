@@ -1,0 +1,10 @@
+/IO-Handle-Common-*
+/.build
+/_build*
+/Build
+MYMETA.*
+!META.json
+/.prove
+/.carmel
+/local
+/fatpack
