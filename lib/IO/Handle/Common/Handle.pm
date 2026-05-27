@@ -30,7 +30,7 @@ sub AUTOLOAD {
     my $invoke = shift;
     my $method = ( $AUTOLOAD =~ s/^.*:://r );
 
-    if ( $invoke->isa('IO::Handle::Common::Base') ) {
+    if ( $invoke->isa('IO::Handle::Common::Handle') ) {
         if ( my $charset = $invoke->charset ) {
             $invoke->charset->$method(@_);
         }

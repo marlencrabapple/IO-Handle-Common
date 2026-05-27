@@ -14,7 +14,7 @@ use Data::Dumper::Names;
 use Devel::StackTrace::WithLexicals;
 use PadWalker;
 use IO::Handle::Common::Handle;
-use Path::Tiny;
+use Path::Tiny qw'';
 
 use base 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
@@ -33,6 +33,10 @@ field $linestart_success : param : accessor = '⭕️';
 
 method $io {
     $self;
+}
+
+method path {
+    Path::Tiny::path(@_);
 }
 
 method writeh( $line, $handle, %opt ) {
