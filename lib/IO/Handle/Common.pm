@@ -75,7 +75,7 @@ method dmsg {
     $out .=
       $debug && $debug == 2
       ? join "\n",
-      map { ( my $line = $_ ) =~ s/$ltrimtab_re/  /; "  $line" } split $lb_re,
+    map { ( my $line = $_ ) =~ s/$ltrimtab_re/  /; "  $line" } split /$lb_re/,
       Devel::StackTrace::WithLexicals->new(
         indent      => $trace_indent // 1,
         skip_frames => $skip_frames  // 1
@@ -97,6 +97,8 @@ method error ($line) {
 }
 
 method fatal ( $line, $status = ( $? || 255 ), %opt ) {
+    error "Status ($status) must be between 0 and 255"
+      unless $status >= 0 || $status <= 255;
     $self->error($line);
     exit $status;
 }
