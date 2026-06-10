@@ -8,6 +8,7 @@ requires 'Devel::StackTrace::WithLexicals';
 requires 'PadWalker';
 requires 'FileHandle';
 requires 'List::Util';
+requires 'Class::Exporter';
 
 on test => sub {
     requires 'Test::More', '0.96';

@@ -1,5 +1,11 @@
 # carton snapshot format: version 1.0
 DISTRIBUTIONS
+  Class-Exporter-0.03
+    pathname: S/SP/SPLICE/Class-Exporter-0.03.tar.gz
+    provides:
+      Class::Exporter 0.03
+    requirements:
+      ExtUtils::MakeMaker 0
   Const-Fast-0.014
     pathname: L/LE/LEONT/Const-Fast-0.014.tar.gz
     provides:
