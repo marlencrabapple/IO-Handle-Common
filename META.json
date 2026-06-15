@@ -37,6 +37,7 @@
       },
       "runtime" : {
          "requires" : {
+            "Class::Exporter" : "0",
             "Const::Fast" : "0",
             "Data::Dumper::Names" : "0",
             "Devel::StackTrace::WithLexicals" : "0",

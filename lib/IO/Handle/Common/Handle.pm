@@ -17,16 +17,17 @@ use List::Util 'none';
 use Path::Tiny;
 use FileHandle;
 
-field $charset : param(charset) = 'UTF-8';
+field $charset : param = 'UTF-8';
 field $fileno;
-field $handle : reader(charset);
+field $handle : reader(charset)
+  ;    # TODO: decipher AUTOLOAD logic that led to charset reader here
 field $path;
 field $mode : param = ">";
+field $autoflush : param = 1;
 
 sub AUTOLOAD {
-
-    # use Data::Dumper;
     our $AUTOLOAD;
+
     my $invoke = shift;
     my $method = ( $AUTOLOAD =~ s/^.*:://r );
 
@@ -47,8 +48,6 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
       if scalar( ( grep { defined $_ } @arg ) > 1 );
 
     if ($fn) {
-
-        # const our %MODE => ( w => '>', 'r' => '<' );
         $path   = path($fn);
         $handle = $path->filehandle($mode);
     }
@@ -62,8 +61,13 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
         $fileno = $fd;
     }
 
-    $handle->autoflush if $handle
+    $handle->autoflush($autoflush) if $handle
 };
+
+method autoflush ( $enable = 1 ) {
+    $autoflush = $enable if $autoflush != $enable;
+    $handle->autoflush($autoflush);
+}
 
 method default_layer : common {
     $DEFAULT_LAYER;

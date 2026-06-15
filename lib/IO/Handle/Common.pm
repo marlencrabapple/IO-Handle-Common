@@ -9,6 +9,7 @@ our $VERSION = '0.01';
 use utf8;
 use v5.40;
 
+use Carp qw'croak';
 use Const::Fast;
 use Data::Dumper::Names;
 use Devel::StackTrace::WithLexicals;
@@ -19,7 +20,7 @@ use Path::Tiny qw'';
 use base 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
 
-@EXPORT = qw($io dmsg info success error fatal msg path);
+@EXPORT = qw($io dmsg info success error fatal msg);
 
 field $debug = $ENV{DEBUG} // 1;
 
@@ -68,7 +69,7 @@ method dmsg {
 
     local $Data::Dumper::Names::UpLevel = $ddn_uplvl;
     local $Data::Dumper::Pad            = "  ";
-    local $Data::Dumper::Indent         = 1;
+    local $Data::Dumper::Indent = 1;
 
     my $out;
     $out .= Dumper(@_);
@@ -100,7 +101,7 @@ method fatal ( $line, $status = ( $? || 255 ), %opt ) {
     error "Status ($status) must be between 0 and 255"
       unless $status >= 0 || $status <= 255;
     $self->error($line);
-    exit $status;
+croak $status;
 }
 
 method success ($line) {
@@ -112,9 +113,9 @@ method msg ($line) {
     $self->outh($line);
 }
 
-method prompt  { ... }
-method getc    { ... }
-method getline { ... }
+# method prompt  { ... }
+# method getc    { ... }
+# method getline { ... }
 
 =encoding utf-8
 
