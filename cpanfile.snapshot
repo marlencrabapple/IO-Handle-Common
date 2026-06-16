@@ -6,6 +6,16 @@ DISTRIBUTIONS
       Class::Exporter 0.03
     requirements:
       ExtUtils::MakeMaker 0
+  Class-Inspector-1.36
+    pathname: P/PL/PLICEASE/Class-Inspector-1.36.tar.gz
+    provides:
+      Class::Inspector 1.36
+      Class::Inspector::Functions 1.36
+    requirements:
+      ExtUtils::MakeMaker 0
+      File::Spec 0.80
+      base 0
+      perl 5.008
   Const-Fast-0.014
     pathname: L/LE/LEONT/Const-Fast-0.014.tar.gz
     provides:
@@ -50,6 +60,14 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 6.59
       PadWalker 1.98
       perl 5.008001
+  ExtUtils-CChecker-0.12
+    pathname: P/PE/PEVANS/ExtUtils-CChecker-0.12.tar.gz
+    provides:
+      ExtUtils::CChecker 0.12
+    requirements:
+      ExtUtils::CBuilder 0
+      Module::Build 0.4004
+      perl 5.014
   ExtUtils-Config-0.010
     pathname: L/LE/LEONT/ExtUtils-Config-0.010.tar.gz
     provides:
@@ -91,6 +109,77 @@ DISTRIBUTIONS
       perl 5.008
       strict 0
       warnings 0
+  File-ShareDir-1.118
+    pathname: R/RE/REHSACK/File-ShareDir-1.118.tar.gz
+    provides:
+      File::ShareDir 1.118
+    requirements:
+      Carp 0
+      Class::Inspector 1.12
+      ExtUtils::MakeMaker 0
+      File::ShareDir::Install 0.13
+      File::Spec 0.80
+      perl 5.008001
+      warnings 0
+  File-ShareDir-Install-0.14
+    pathname: E/ET/ETHER/File-ShareDir-Install-0.14.tar.gz
+    provides:
+      File::ShareDir::Install 0.14
+    requirements:
+      Carp 0
+      Exporter 0
+      ExtUtils::MakeMaker 0
+      File::Spec 0
+      IO::Dir 0
+      perl 5.006
+      strict 0
+      warnings 0
+  Module-Build-0.42_35
+    pathname: L/LE/LEONT/Module-Build-0.42_35.tar.gz
+    provides:
+      Module::Build 0.42_35
+      Module::Build::Base 0.42_35
+      Module::Build::Compat 0.42_35
+      Module::Build::Config 0.42_35
+      Module::Build::Cookbook 0.42_35
+      Module::Build::Dumper 0.42_35
+      Module::Build::Notes 0.42_35
+      Module::Build::PPMMaker 0.42_35
+      Module::Build::Platform::Default 0.42_35
+      Module::Build::Platform::MacOS 0.42_35
+      Module::Build::Platform::Unix 0.42_35
+      Module::Build::Platform::VMS 0.42_35
+      Module::Build::Platform::VOS 0.42_35
+      Module::Build::Platform::Windows 0.42_35
+      Module::Build::Platform::aix 0.42_35
+      Module::Build::Platform::cygwin 0.42_35
+      Module::Build::Platform::darwin 0.42_35
+      Module::Build::Platform::os2 0.42_35
+      Module::Build::PodParser 0.42_35
+    requirements:
+      CPAN::Meta 2.142060
+      Cwd 0
+      Data::Dumper 0
+      ExtUtils::CBuilder 0.27
+      ExtUtils::Install 0
+      ExtUtils::InstallPaths 0.003
+      ExtUtils::Manifest 0
+      ExtUtils::Mkbootstrap 0
+      ExtUtils::ParseXS 2.21
+      File::Basename 0
+      File::Compare 0
+      File::Copy 0
+      File::Find 0
+      File::Path 0
+      File::Spec 0.82
+      Getopt::Long 0
+      Module::Metadata 1.000002
+      Perl::OSType 1
+      TAP::Harness 3.29
+      Text::Abbrev 0
+      Text::ParseWords 0
+      perl 5.006001
+      version 0.87
   Module-Build-Tiny-0.053
     pathname: L/LE/LEONT/Module-Build-Tiny-0.053.tar.gz
     provides:
@@ -116,6 +205,25 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
+  Object-Pad-0.825
+    pathname: P/PE/PEVANS/Object-Pad-0.825.tar.gz
+    provides:
+      Object::Pad 0.825
+      Object::Pad::ExtensionBuilder 0.825
+      Object::Pad::MOP::Class 0.825
+      Object::Pad::MOP::Field 0.825
+      Object::Pad::MOP::FieldAttr 0.825
+      Object::Pad::MOP::Method 0.825
+      Object::Pad::MetaFunctions 0.825
+    requirements:
+      ExtUtils::CBuilder 0
+      File::ShareDir 1.00
+      Module::Build 0.4004
+      XS::Parse::Keyword 0.47
+      XS::Parse::Keyword::Builder 0.48
+      XS::Parse::Sublike 0.35
+      XS::Parse::Sublike::Builder 0.35
+      perl 5.022
   PadWalker-2.5
     pathname: R/RO/ROBIN/PadWalker-2.5.tar.gz
     provides:
@@ -385,3 +493,28 @@ DISTRIBUTIONS
       overload 0
       perl 5.006002
       utf8 0
+  XS-Parse-Keyword-0.49
+    pathname: P/PE/PEVANS/XS-Parse-Keyword-0.49.tar.gz
+    provides:
+      XS::Parse::Infix 0.49
+      XS::Parse::Infix::Builder 0.49
+      XS::Parse::Keyword 0.49
+      XS::Parse::Keyword::Builder 0.49
+    requirements:
+      ExtUtils::CBuilder 0
+      ExtUtils::CChecker 0.11
+      ExtUtils::ParseXS 3.16
+      File::ShareDir 1.00
+      Module::Build 0.4004
+      perl 5.014
+  XS-Parse-Sublike-0.41
+    pathname: P/PE/PEVANS/XS-Parse-Sublike-0.41.tar.gz
+    provides:
+      Sublike::Extended 0.41
+      XS::Parse::Sublike 0.41
+      XS::Parse::Sublike::Builder 0.41
+    requirements:
+      ExtUtils::CBuilder 0
+      File::ShareDir 1.00
+      Module::Build 0.4004
+      perl 5.016

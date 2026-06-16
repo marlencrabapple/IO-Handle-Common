@@ -6,6 +6,7 @@ requires 'Path::Tiny';
 requires 'Data::Dumper::Names';
 requires 'Devel::StackTrace::WithLexicals';
 requires 'PadWalker';
+requires 'Object::Pad';
 requires 'FileHandle';
 requires 'List::Util';
 requires 'Class::Exporter';
