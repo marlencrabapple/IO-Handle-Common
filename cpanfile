@@ -12,5 +12,9 @@ requires 'List::Util';
 requires 'Class::Exporter';
 
 on test => sub {
-    requires 'Test::More', '0.96';
+    requires 'Test::More', '0.96'
 };
+
+on devel => sub {
+    requires 'CPAN::Mini::Inject'
+}
