@@ -60,6 +60,12 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 6.59
       PadWalker 1.98
       perl 5.008001
+  Devel-Trace-0.12
+    pathname: M/MJ/MJD/Devel-Trace-0.12.tar.gz
+    provides:
+      Devel::Trace 0.12
+    requirements:
+      ExtUtils::MakeMaker 0
   ExtUtils-CChecker-0.12
     pathname: P/PE/PEVANS/ExtUtils-CChecker-0.12.tar.gz
     provides:

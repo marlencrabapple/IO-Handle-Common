@@ -2,8 +2,7 @@ use Object::Pad ':experimental(:all)';
 
 package IO::Handle::Common;
 
-class IO::Handle::Common;
-
+class IO::Handle::Common : does(IO::Handle::Common::Base);
 our $VERSION = '0.01';
 
 use utf8;
@@ -12,25 +11,80 @@ use v5.40;
 use Carp qw'croak';
 use Const::Fast;
 use Data::Dumper::Names;
+
+# use Data::Printer;
 use Devel::StackTrace::WithLexicals;
 use PadWalker;
 use IO::Handle::Common::Handle;
 use Path::Tiny qw'';
+use Time::Piece;
+use Const::Fast;
+use Getopt::Long
+  qw(GetOptionsFromArray :config no_ignore_case auto_abbrev passthrough bundling long_prefix_pattern=undef);
 
 use base 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
 
-@EXPORT = qw($io dmsg info success error fatal msg);
+@EXPORT    = qw(dmsg info success error fatal msg);
+@EXPORT_OK = ( @EXPORT, qw'path $io' );
 
-field $debug = $ENV{DEBUG} // 1;
+field $debug : param = $ENV{DEBUG} // 1;
 
 field $ddn_uplvl    : param : accessor = 3;
 field $trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // 1;
 field $skip_frames  : param : accessor = $ENV{DEBUG_SKIPFRAMES} // 1;
 
-field $linestart_info    : param : accessor = '▶';
-field $linestart_err     : param : accessor = '❌️';
-field $linestart_success : param : accessor = '⭕️';
+field $info_head    : param : accessor = [qw'▶ ▷'];
+field $err_head     : param : accessor = ['❌️'];
+field $field_head   : param : accessor = [@$err_head];
+field $success_head : param : accessor = ['⭕️'];
+field $msg_head     : param : accessor = [undef];
+
+# field $dmsg_head    : accessor;
+
+# ADJUST : params (:$dmsg_head = undef) {
+#     $dmsg_head //= [
+#         sub {
+#             $self->headfmt(
+#                 Time::Piece->now->to_string('%Y-%m-%d %H:%M:%S%f') );
+#         }
+#     ]
+# };
+
+field $head = {
+    info    => undef,
+    err     => undef,
+    success => undef,
+    fatal   => undef,
+    msg     => undef,
+    dmsg    => undef
+};
+
+ADJUST : params (:$prepend_head //= undef) {
+
+    # my $headfield_ptn = join "|", @$prepend_head;
+    # const my $headfield_re => qr/($headfield_ptn)+/i;
+    if ($prepend_head) {
+        if ( $prepend_head == 1 ) {
+            @$head = ( 1 x scalar @$head - 1 );
+        }
+        elsif ( refstr($prepend_head) eq 'ARRAY' ) {
+            const my $headfield_re => eval "qr/(" . join "|",
+              @$prepend_head . ")+/i";
+            $$head{$_} = 1 for grep { $_ =~ $headfield_re } @$prepend_head;
+        }
+        elsif ( refstr($prepend_head) eq 'HASH' ) {
+            foreach my ( $k, $v ) (%$prepend_head) {
+                $$head{$k} = 1;
+                eval "\$${k}_head = [\$v]";
+            }
+        }
+    }
+
+    # elsif ( !reftype($prepend_head) && $prepend_head =~ $headfield_re ) {
+    #     $self->adjust( $prepend_head, 1 );
+    # }
+};
 
 method $io {
     $self;
@@ -64,19 +118,19 @@ const our $ltrimtab_re => qr/^\t/;
 const our $lb_re       => qr/\R/;
 
 method dmsg {
-    return unless $debug = $ENV{DEBUG};
+    return unless $debug // $ENV{DEBUG};
     my @caller = caller 1;
 
     local $Data::Dumper::Names::UpLevel = $ddn_uplvl;
     local $Data::Dumper::Pad            = "  ";
-    local $Data::Dumper::Indent = 1;
+    local $Data::Dumper::Indent         = 1;
 
     my $out;
     $out .= Dumper(@_);
     $out .=
       $debug && $debug == 2
       ? join "\n",
-    map { ( my $line = $_ ) =~ s/$ltrimtab_re/  /; "  $line" } split /$lb_re/,
+      map { ( my $line = $_ ) =~ s/$ltrimtab_re/  /; "  $line" } split /$lb_re/,
       Devel::StackTrace::WithLexicals->new(
         indent      => $trace_indent // 1,
         skip_frames => $skip_frames  // 1
@@ -88,30 +142,37 @@ method dmsg {
 }
 
 method info ($line) {
-    $line = "$linestart_info $line" if $linestart_info;
+    $line = "$info_head $line" if $$head{info};
     $self->errh($line);
 }
 
 method error ($line) {
-    $line = "$linestart_err $line" if $linestart_err;
+    $line = "$err_head $line" if $$head{error};
     $self->errh($line);
 }
 
 method fatal ( $line, $status = ( $? || 255 ), %opt ) {
+    $status = $status >> 8 if ( $status > 255 );
+
     error "Status ($status) must be between 0 and 255"
       unless $status >= 0 || $status <= 255;
-    $self->error($line);
-croak $status;
+
+    $self->error( $line, %opt );
+    croak $status;
 }
 
 method success ($line) {
-    $line = "$linestart_success $line" if $linestart_success;
+    $line = "$success_head $line" if $$head{success};
     $self->outh($line);
 }
 
 method msg ($line) {
-    $self->outh($line);
+    $self->outh( ( $$head{msg} // '' ) . $line );
 }
+
+# method headfmt( $instr, %opt ) {
+#     $instr;
+# }
 
 # method prompt  { ... }
 # method getc    { ... }

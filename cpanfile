@@ -3,6 +3,7 @@ requires 'perl', 'v5.40';
 requires 'Const::Fast';
 requires 'IO::Handle';
 requires 'Path::Tiny';
+requires 'Devel::Trace';
 requires 'Data::Dumper::Names';
 requires 'Devel::StackTrace::WithLexicals';
 requires 'PadWalker';
@@ -15,6 +16,7 @@ on test => sub {
     requires 'Test::More', '0.96'
 };
 
-on devel => sub {
-    requires 'CPAN::Mini::Inject'
+on develop => sub {
+    recommends 'Dist::Milla';
+    requires 'Module::Build'
 }
