@@ -11,8 +11,6 @@ use v5.40;
 use Carp qw'croak';
 use Const::Fast;
 use Data::Dumper::Names;
-
-# use Data::Printer;
 use Devel::StackTrace::WithLexicals;
 use PadWalker;
 use IO::Handle::Common::Handle;
@@ -22,7 +20,7 @@ use Const::Fast;
 use Getopt::Long
   qw(GetOptionsFromArray :config no_ignore_case auto_abbrev passthrough bundling long_prefix_pattern=undef);
 
-use base 'Class::Exporter';
+use parent 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
 
 @EXPORT    = qw(dmsg info success error fatal msg);
