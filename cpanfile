@@ -2,7 +2,6 @@ requires 'perl', 'v5.40';
 
 requires 'Const::Fast';
 requires 'IO::Handle';
-requires 'Path::Tiny';
 requires 'Devel::Trace';
 requires 'Data::Dumper::Names';
 requires 'Devel::StackTrace::WithLexicals';

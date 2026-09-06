@@ -14,19 +14,16 @@ use Data::Dumper::Names;
 use Devel::StackTrace::WithLexicals;
 use PadWalker;
 use IO::Handle::Common::Handle;
-use Path::Tiny qw'';
 use Time::Piece;
 use Const::Fast;
-use Getopt::Long
-  qw(GetOptionsFromArray :config no_ignore_case auto_abbrev passthrough bundling long_prefix_pattern=undef);
 
 use parent 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
 
 @EXPORT    = qw(dmsg info success error fatal msg);
-@EXPORT_OK = ( @EXPORT, qw'path $io' );
+@EXPORT_OK = ( @EXPORT, qw'$io' );
 
-field $debug : param = $ENV{DEBUG} // 1;
+field $debug : param = $ENV{DEBUG} // 0;
 
 field $ddn_uplvl    : param : accessor = 3;
 field $trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // 1;
@@ -86,10 +83,6 @@ ADJUST : params (:$prepend_head //= undef) {
 
 method $io {
     $self;
-}
-
-method path {
-    Path::Tiny::path(@_);
 }
 
 method writeh( $line, $handle, %opt ) {

@@ -7,4 +7,7 @@ MYMETA.*
 /.prove
 /.carmel
 /local
+/vendor
+/authors
 /fatpack
+._*

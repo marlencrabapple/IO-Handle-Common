@@ -7,29 +7,33 @@ class IO::Handle::Common::Handle;
 use utf8;
 use v5.40;
 
+no warnings 'experimental::re_strict';
+use re 'strict';
+
 use Const::Fast;
+use Unicode::UTF8;
+use List::Util 'none';
+use Path::Tiny ();
+use FileHandle;
 
 const our $DEFAULT_LAYER => 'encoding(UTF-8)';
 
 use open ':std', IO => $DEFAULT_LAYER;
-
-use List::Util 'none';
-use Path::Tiny;
-use FileHandle;
 
 field $charset : param = 'UTF-8';
 field $fileno;
 field $handle : reader(charset)
   ;    # TODO: decipher AUTOLOAD logic that led to charset reader here
 field $path;
-field $mode : param = ">";
+field $mode      : param = ">";
 field $autoflush : param = 1;
 
 sub AUTOLOAD {
     our $AUTOLOAD;
 
     my $invoke = shift;
-    my $method = ( $AUTOLOAD =~ s/^.*:://r );
+    const my $meth_re => qr!^.*::!;
+    my $method = ( $AUTOLOAD =~ s/$meth_re//r );
 
     if ( $invoke->isa('IO::Handle::Common::Handle') ) {
         if ( my $charset = $invoke->charset ) {
