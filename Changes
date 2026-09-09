@@ -1,6 +1,8 @@
 Revision history for IO-Handle-Common
 
 {{$NEXT}}
+
+0.01.1  2026-09-09 00:58:41 PDT
 	- Add missing dependencies
 	- Fix exports
 	- Add customization to contextual output helpers: dmsg info error fatal
