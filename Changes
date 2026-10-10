@@ -1,6 +1,8 @@
 Revision history for IO-Handle-Common
 
 {{$NEXT}}
+
+0.01_2  2026-10-10 14:05:07 PDT
   - IO::Handle::Common:
     - Add getline and prompt for reading STDIN
     - Add optional 'keep_open' ('interactive' is aliased to this at the
