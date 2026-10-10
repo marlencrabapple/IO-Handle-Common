@@ -17,5 +17,5 @@ on test => sub {
 
 on develop => sub {
     recommends 'Dist::Milla';
-    requires 'Module::Build'
+    requires 'Module::Build::Tiny'
 }

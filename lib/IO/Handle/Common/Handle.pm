@@ -2,7 +2,7 @@ use Object::Pad ':experimental(:all)';
 
 package IO::Handle::Common::Handle;
 
-class IO::Handle::Common::Handle;
+class IO::Handle::Common::Handle : does(IO::Handle::Common::Base);
 
 use utf8;
 use v5.40;
@@ -12,9 +12,12 @@ use re 'strict';
 
 use Const::Fast;
 use Unicode::UTF8;
-use List::Util 'none';
+use List::Util qw'any none first';
 use Path::Tiny ();
 use FileHandle;
+use IO::Handle;
+use IO::Handle::Common::Base qw'refstr';
+use Data::Dumper;
 
 const our $DEFAULT_LAYER => 'encoding(UTF-8)';
 
@@ -35,7 +38,7 @@ sub AUTOLOAD {
     const my $meth_re => qr!^.*::!;
     my $method = ( $AUTOLOAD =~ s/$meth_re//r );
 
-    if ( $invoke->isa('IO::Handle::Common::Handle') ) {
+    if ( blessed $invoke && $invoke->isa('IO::Handle::Common::Handle') ) {
         if ( my $charset = $invoke->charset ) {
             $invoke->charset->$method(@_);
         }
@@ -51,8 +54,10 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
     die "Only one of the following can be defined: \$fn, \$fh, \$fd"
       if scalar( ( grep { defined $_ } @arg ) > 1 );
 
+    $handle = IO::Handle->new;
+
     if ($fn) {
-        $path   = path($fn);
+        $path   = Path::Tiny::path($fn);
         $handle = $path->filehandle($mode);
     }
     elsif ($fh) {
@@ -67,6 +72,54 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
 
     $handle->autoflush($autoflush) if $handle
 };
+
+method say ( $say, %opt ) {
+    say STDERR Dumper( $say, \%opt );
+    if ( refstr($say) eq 'ARRAY' ) {
+
+        #$self->print("$_\n") for @$say;
+        $handle->say($_) for @$say;
+    }
+    else {
+        #$self->print("$say\n");
+        $handle->say( $handle, $say );
+    }
+}
+
+method refresh (%opt) {
+    $handle = IO::Handle::Common::Handle->new(
+        fd   => $opt{fd},
+        mode => $opt{mode}
+    ) unless $handle && blessed($handle) && $handle->opened;
+
+    say STDERR Dumper( $self, \%opt, $handle );
+
+    # const my @on_key => qw(cb callback code sub on);
+
+    if ( $opt{on} && refstr( $opt{on} ) eq 'CODE' ) {
+
+        # die "Can only set one of the following named parameters at a time:\n"
+        #   . join ', ', @on_key
+        #   if scalar @opt{@on_key} > 1;
+
+        ( delete $opt{on} )->( $handle, %opt );
+
+    }
+
+    if ( $opt{method} && $handle->can( $opt{method} ) ) {
+        my $package = blessed($handle);
+        my $meth    = delete $opt{method};
+        die "Named parameter 'callarg' must be an ARRAY"
+          if $opt{callarg}
+          && refstr( $opt{callarg} ) ne 'ARRAY';
+        $handle->$meth( $opt{callarg}->@* );
+    }
+
+    $handle->close
+      unless any { $_ } ( @opt{qw'keep_open noclose interactive'} );
+
+    $self;
+}
 
 method autoflush ( $enable = 1 ) {
     $autoflush = $enable if $autoflush != $enable;

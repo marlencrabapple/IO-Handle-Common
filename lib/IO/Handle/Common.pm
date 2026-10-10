@@ -13,9 +13,11 @@ use Const::Fast;
 use Data::Dumper::Names;
 use Devel::StackTrace::WithLexicals;
 use PadWalker;
+use IO::Handle::Common::Base qw'refstr';
 use IO::Handle::Common::Handle;
 use Time::Piece;
 use Const::Fast;
+use List::Util qw'any first';
 
 use parent 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
@@ -85,26 +87,6 @@ method $io {
     $self;
 }
 
-method writeh( $line, $handle, %opt ) {
-
-    if ( $line isa 'ARRAY' ) {
-        $handle->say($_) for $line->@*;
-    }
-    elsif ( !ref $line ) {
-        $handle->say($line);
-    }
-}
-
-method outh ($line) {
-    state $h = IO::Handle::Common::Handle->new( fd => *STDOUT, mode => '>' );
-    $self->writeh( $line, $h );
-}
-
-method errh ($line) {
-    state $h = IO::Handle::Common::Handle->new( fd => *STDERR, mode => '>' );
-    $self->writeh( $line, $h );
-}
-
 const our $ltrimtab_re => qr/^\t/;
 const our $lb_re       => qr/\R/;
 
@@ -130,6 +112,10 @@ method dmsg {
 
     $self->errh($out);
     $out;
+}
+
+method writeh( $h, $line, %opt ) {
+    $h->refresh( method => 'say', callarg => [$line], %opt );
 }
 
 method info ($line) {
@@ -165,9 +151,42 @@ method msg ($line) {
 #     $instr;
 # }
 
-# method prompt  { ... }
-# method getc    { ... }
-# method getline { ... }
+# method getc    {     state $h = $self->refresh( $h, 'getc', fd => *STDIN, mode => 'r', %opt ); }
+
+method outh ( $line, %opt ) {
+    %opt = ( fd => *STDOUT, mode => '>' );
+    state $h //= IO::Handle::Common::Handle->new(%opt);
+    $h = $self->writeh( $h, $line, %opt );
+}
+
+method errh ( $line, %opt ) {
+    %opt = ( fd => *STDERR, mode => '>' );
+    state $h //= IO::Handle::Common::Handle->new(%opt);
+    $h = $self->writeh( $h, $line, %opt );
+}
+
+method readh ( %opt ) {
+    %opt = ( fd => *STDIN, mode => '<', %opt );
+    state $h //= IO::Handle::Common::Handle->new(%opt);
+    $h = $self->refresh(%opt);
+}
+
+method getline (%opt) {
+    %opt = ( fd => *STDIN, mode => '<', %opt );
+    $self->readh( method => 'getline', %opt );
+}
+
+method prompt (%opt) {
+    %opt = ( fd => *STDIN, mode => '<', %opt );
+    my $prompt = (
+        delete $opt{prompt} // sub ( $h, %opt ) {
+            print $opt{prompt};
+            ( delete $opt{get} )->( $h, %opt );
+        }
+    );
+
+    $self->readh( on => $prompt, %opt );
+}
 
 =encoding utf-8
 
