@@ -17,7 +17,6 @@ use Path::Tiny ();
 use FileHandle;
 use IO::Handle;
 use IO::Handle::Common::Base qw'refstr';
-use Data::Dumper;
 
 const our $DEFAULT_LAYER => 'encoding(UTF-8)';
 
@@ -74,7 +73,6 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
 };
 
 method say ( $say, %opt ) {
-    say STDERR Dumper( $self, $say, \%opt );
     if ( refstr($say) eq 'ARRAY' ) {
         $handle->say($_) for @$say;
     }
@@ -88,7 +86,7 @@ method refresh (%opt) {
         fd   => $opt{fd},
         mode => $opt{mode}
     ) unless $handle && blessed($handle) && $handle->opened;
-    say STDERR Dumper( $self, \%opt );
+
     if ( $opt{on} && refstr( $opt{on} ) eq 'CODE' ) {
         ( delete $opt{on} )->( $handle, %opt );
     }
