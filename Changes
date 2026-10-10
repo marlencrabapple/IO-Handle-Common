@@ -1,11 +1,20 @@
 Revision history for IO-Handle-Common
 
 {{$NEXT}}
+  - IO::Handle::Common:
+    - Add getline and prompt for reading STDIN
+    - Add optional 'keep_open' ('interactive' is aliased to this at the
+      moment but this could changed) to exported methods for interactive
+      functionality
+  - IO::Handle::Common::Handle:
+    - Add refresh method to replace a closed handler/reuse if open and
+      optionally call an named param 'method' where $class->can(:$method)
+      or 'on' is a CODE ref
 
 0.01.1  2026-09-09 00:58:41 PDT
 	- Add missing dependencies
 	- Fix exports
 	- Add customization to contextual output helpers: dmsg info error fatal
-	
+
 0.01  2026-05-27 18:18:47 PDT
         - Initial release

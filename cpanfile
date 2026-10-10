@@ -8,6 +8,7 @@ requires 'Devel::StackTrace::WithLexicals';
 requires 'PadWalker';
 requires 'Object::Pad';
 requires 'FileHandle';
+requires 'Path::Tiny';
 requires 'List::Util';
 requires 'Class::Exporter';
 

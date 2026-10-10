@@ -25,7 +25,7 @@ use open ':std', IO => $DEFAULT_LAYER;
 
 field $charset : param = 'UTF-8';
 field $fileno;
-field $handle : reader(charset)
+field $handle : reader(fh)
   ;    # TODO: decipher AUTOLOAD logic that led to charset reader here
 field $path;
 field $mode      : param = ">";
@@ -39,8 +39,8 @@ sub AUTOLOAD {
     my $method = ( $AUTOLOAD =~ s/$meth_re//r );
 
     if ( blessed $invoke && $invoke->isa('IO::Handle::Common::Handle') ) {
-        if ( my $charset = $invoke->charset ) {
-            $invoke->charset->$method(@_);
+        if ( my $charset = $invoke->fh ) {
+            $invoke->fh->$method(@_);
         }
     }
     else {
@@ -74,14 +74,11 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
 };
 
 method say ( $say, %opt ) {
-    say STDERR Dumper( $say, \%opt );
+    say STDERR Dumper( $self, $say, \%opt );
     if ( refstr($say) eq 'ARRAY' ) {
-
-        #$self->print("$_\n") for @$say;
         $handle->say($_) for @$say;
     }
     else {
-        #$self->print("$say\n");
         $handle->say( $handle, $say );
     }
 }
@@ -91,19 +88,9 @@ method refresh (%opt) {
         fd   => $opt{fd},
         mode => $opt{mode}
     ) unless $handle && blessed($handle) && $handle->opened;
-
-    say STDERR Dumper( $self, \%opt, $handle );
-
-    # const my @on_key => qw(cb callback code sub on);
-
+    say STDERR Dumper( $self, \%opt );
     if ( $opt{on} && refstr( $opt{on} ) eq 'CODE' ) {
-
-        # die "Can only set one of the following named parameters at a time:\n"
-        #   . join ', ', @on_key
-        #   if scalar @opt{@on_key} > 1;
-
         ( delete $opt{on} )->( $handle, %opt );
-
     }
 
     if ( $opt{method} && $handle->can( $opt{method} ) ) {

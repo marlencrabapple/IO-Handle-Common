@@ -17,13 +17,14 @@ use IO::Handle::Common::Base qw'refstr';
 use IO::Handle::Common::Handle;
 use Time::Piece;
 use Const::Fast;
-use List::Util qw'any first';
+use List::Util qw'any first pairmap';
+use builtin;
 
 use parent 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
 
-@EXPORT    = qw(dmsg info success error fatal msg);
-@EXPORT_OK = ( @EXPORT, qw'$io' );
+@EXPORT = qw(dmsg info success error fatal msg readline prompt);
+@EXPORT_OK = (@EXPORT);
 
 field $debug : param = $ENV{DEBUG} // 0;
 
@@ -48,34 +49,37 @@ field $msg_head     : param : accessor = [undef];
 #     ]
 # };
 
+const my @head_key => qw(info err success fatal msg dmsg);
+
 field $head = {
-    info    => undef,
-    err     => undef,
-    success => undef,
-    fatal   => undef,
-    msg     => undef,
-    dmsg    => undef
+( map { $_ => false } @head_key )
 };
 
-ADJUST : params (:$prepend_head //= undef) {
+ADJUST : params (:$decorate //= undef) {
 
     # my $headfield_ptn = join "|", @$prepend_head;
     # const my $headfield_re => qr/($headfield_ptn)+/i;
-    if ($prepend_head) {
-        if ( $prepend_head == 1 ) {
-            @$head = ( 1 x scalar @$head - 1 );
+    if ($decorate) {
+        if ( $decorate == 1 ) {
+        $self->decorate(builtin::true)
         }
-        elsif ( refstr($prepend_head) eq 'ARRAY' ) {
+        elsif ( refstr($decorate) eq 'ARRAY' ) {
             const my $headfield_re => eval "qr/(" . join "|",
-              @$prepend_head . ")+/i";
-            $$head{$_} = 1 for grep { $_ =~ $headfield_re } @$prepend_head;
+            @$decorate . ")+/i";
+            $$head{$_} = 1 for grep { $_ =~ $headfield_re } @$decorate;
         }
-        elsif ( refstr($prepend_head) eq 'HASH' ) {
-            foreach my ( $k, $v ) (%$prepend_head) {
+        elsif ( refstr($decorate) eq 'HASH' ) {
+            foreach my ( $k, $v ) (%$decorate) {
                 $$head{$k} = 1;
                 eval "\$${k}_head = [\$v]";
             }
         }
+        elsif ($decorate == 0) {
+$self->decorate(builtin::false)
+        }
+    }
+    else {
+# $self->decorate
     }
 
     # elsif ( !reftype($prepend_head) && $prepend_head =~ $headfield_re ) {
@@ -83,8 +87,13 @@ ADJUST : params (:$prepend_head //= undef) {
     # }
 };
 
-method $io {
-    $self;
+method decorate ( $enable = undef, %opt ) {
+    if ( defined $enable && !reftype($enable) ) {
+        $$head{$_} = $enable ? true : false for keys %$head
+    }
+    elsif(!$enable) {
+        $$head{$_} = !$$head{$_} for keys %$head
+    }
 }
 
 const our $ltrimtab_re => qr/^\t/;
