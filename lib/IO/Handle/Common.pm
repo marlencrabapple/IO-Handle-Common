@@ -3,7 +3,7 @@ use Object::Pad ':experimental(:all)';
 package IO::Handle::Common;
 
 class IO::Handle::Common : does(IO::Handle::Common::Base);
-our $VERSION = '0.01_2';
+our $VERSION = '0.01_3';
 
 use utf8;
 use v5.40;

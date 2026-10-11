@@ -77,7 +77,7 @@ method say ( $say, %opt ) {
         $handle->say($_) for @$say;
     }
     else {
-        $handle->say( $handle, $say );
+        $handle->say($say);
     }
 }
 
