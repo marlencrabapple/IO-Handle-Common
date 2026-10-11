@@ -23,7 +23,7 @@ use builtin;
 use parent 'Class::Exporter';
 use vars qw'@EXPORT @EXPORT_OK';
 
-@EXPORT = qw(dmsg info success error fatal msg readline prompt);
+@EXPORT    = qw(dmsg info success error fatal msg getline prompt);
 @EXPORT_OK = (@EXPORT);
 
 field $debug : param = $ENV{DEBUG} // 0;
@@ -51,9 +51,7 @@ field $msg_head     : param : accessor = [undef];
 
 const my @head_key => qw(info err success fatal msg dmsg);
 
-field $head = {
-( map { $_ => false } @head_key )
-};
+field $head = { ( map { $_ => false } @head_key ) };
 
 ADJUST : params (:$decorate //= undef) {
 
@@ -61,11 +59,11 @@ ADJUST : params (:$decorate //= undef) {
     # const my $headfield_re => qr/($headfield_ptn)+/i;
     if ($decorate) {
         if ( $decorate == 1 ) {
-        $self->decorate(builtin::true)
+            $self->decorate(builtin::true);
         }
         elsif ( refstr($decorate) eq 'ARRAY' ) {
             const my $headfield_re => eval "qr/(" . join "|",
-            @$decorate . ")+/i";
+              @$decorate . ")+/i";
             $$head{$_} = 1 for grep { $_ =~ $headfield_re } @$decorate;
         }
         elsif ( refstr($decorate) eq 'HASH' ) {
@@ -74,12 +72,12 @@ ADJUST : params (:$decorate //= undef) {
                 eval "\$${k}_head = [\$v]";
             }
         }
-        elsif ($decorate == 0) {
-$self->decorate(builtin::false)
+        elsif ( $decorate == 0 ) {
+            $self->decorate(builtin::false);
         }
     }
     else {
-# $self->decorate
+        # $self->decorate
     }
 
     # elsif ( !reftype($prepend_head) && $prepend_head =~ $headfield_re ) {
@@ -89,10 +87,10 @@ $self->decorate(builtin::false)
 
 method decorate ( $enable = undef, %opt ) {
     if ( defined $enable && !reftype($enable) ) {
-        $$head{$_} = $enable ? true : false for keys %$head
+        $$head{$_} = $enable ? true : false for keys %$head;
     }
-    elsif(!$enable) {
-        $$head{$_} = !$$head{$_} for keys %$head
+    elsif ( !$enable ) {
+        $$head{$_} = !$$head{$_} for keys %$head;
     }
 }
 
@@ -174,7 +172,7 @@ method errh ( $line, %opt ) {
     $h = $self->writeh( $h, $line, %opt );
 }
 
-method readh ( %opt ) {
+method readh (%opt) {
     %opt = ( fd => *STDIN, mode => '<', %opt );
     state $h //= IO::Handle::Common::Handle->new(%opt);
     $h = $self->refresh(%opt);

@@ -1,6 +1,8 @@
 Revision history for IO-Handle-Common
 
 {{$NEXT}}
+  - Fix @EXPORT/@EXPORT_OK (readline -> getline)
+  - Fix decorations/prefix on output methods
 
 0.01_2  2026-10-10 14:05:07 PDT
   - IO::Handle::Common:
