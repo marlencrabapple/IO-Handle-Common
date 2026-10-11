@@ -1,6 +1,8 @@
 Revision history for IO-Handle-Common
 
 {{$NEXT}}
+
+0.01_3  2026-10-11 01:26:13 PDT
   - Fix @EXPORT/@EXPORT_OK (readline -> getline)
   - Fix decorations/prefix on output methods
 
