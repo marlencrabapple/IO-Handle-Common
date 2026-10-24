@@ -58,6 +58,7 @@ ADJUST : params (:$fn //= undef,  :$fh //= undef,  :$fd //= undef) {
     if ($fn) {
         $path   = Path::Tiny::path($fn);
         $handle = $path->filehandle($mode);
+        $fileno = fileno($handle)
     }
     elsif ($fh) {
         $handle = $fh;

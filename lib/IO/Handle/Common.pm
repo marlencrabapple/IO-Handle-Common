@@ -3,7 +3,7 @@ use Object::Pad ':experimental(:all)';
 package IO::Handle::Common;
 
 class IO::Handle::Common : does(IO::Handle::Common::Base);
-our $VERSION = '0.01_3';
+our $VERSION = '0.01_4';
 
 use utf8;
 use v5.40;
@@ -17,7 +17,7 @@ use IO::Handle::Common::Base qw'refstr';
 use IO::Handle::Common::Handle;
 use Time::Piece;
 use Const::Fast;
-use List::Util qw'any first pairmap';
+use List::Util qw'any first pairmap none';
 use builtin;
 
 use parent 'Class::Exporter';
@@ -28,15 +28,24 @@ use vars qw'@EXPORT @EXPORT_OK';
 
 field $debug : param = $ENV{DEBUG} // 0;
 
-field $ddn_uplvl    : param : accessor = 3;
-field $trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // 1;
-field $skip_frames  : param : accessor = $ENV{DEBUG_SKIPFRAMES} // 1;
+field $dmsg_uplevel      : param : accessor = 3;
+field $dmsg_trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // 1;
+field $dmsg_skip_frames  : param : accessor = $ENV{DEBUG_SKIPFRAMES} // 1;
+field $dmsg_pad          : param : accessor = "  ";
+field $dmsg_indent       : param : accessor = 1;
 
 field $info_head    : param : accessor = [qw'▶ ▷'];
 field $err_head     : param : accessor = ['❌️'];
 field $field_head   : param : accessor = [@$err_head];
 field $success_head : param : accessor = ['⭕️'];
 field $msg_head     : param : accessor = [undef];
+
+field $in : reader =
+  IO::Handle::Common::Handle->new( fd => *STDIN, mode => '<' );
+field $out : reader =
+  IO::Handle::Common::Handle->new( fd => *STDOUT, mode => '>' );
+field $err : reader =
+  IO::Handle::Common::Handle->new( fd => *STDERR, mode => '>' );
 
 # field $dmsg_head    : accessor;
 
@@ -97,42 +106,60 @@ method decorate ( $enable = undef, %opt ) {
 const our $ltrimtab_re => qr/^\t/;
 const our $lb_re       => qr/\R/;
 
-method dmsg {
+method dmsg (@var) {
     return unless $debug // $ENV{DEBUG};
+
+    my %opt;
+
+    if ( scalar @var % 2 == 0 ) {
+        foreach my ( $v, $k ) ( reverse @var )
+        {    # reversed as option list is @var tail
+            state $i //= scalar @var - 1;
+            next if none { $k eq $_ } qw'trace';
+            $opt{$k} = $v;
+            delete $var[$_] for $i, $i--;
+        }
+    }
+
     my @caller = caller 1;
 
-    local $Data::Dumper::Names::UpLevel = $ddn_uplvl;
-    local $Data::Dumper::Pad            = "  ";
-    local $Data::Dumper::Indent         = 1;
+    local $Data::Dumper::Names::UpLevel = $opt{uplevel} // $dmsg_uplevel;
+    local $Data::Dumper::Pad            = $opt{pad}     // $dmsg_pad;
+    local $Data::Dumper::Indent         = $opt{indent}  // $dmsg_indent;
 
     my $out;
-    $out .= Dumper(@_);
+    $out .= Dumper(@var);
     $out .=
-      $debug && $debug == 2
+      ( $opt{trace} || $debug == 2 )
       ? join "\n",
       map { ( my $line = $_ ) =~ s/$ltrimtab_re/  /; "  $line" } split /$lb_re/,
       Devel::StackTrace::WithLexicals->new(
-        indent      => $trace_indent // 1,
-        skip_frames => $skip_frames  // 1
+        indent      => $opt{trace_indent} // $dmsg_trace_indent,
+        skip_frames => $opt{skip_frames}  // $dmsg_skip_frames
       )->as_string
       : "at $caller[1]:$caller[2]\n";
 
-    $self->errh($out);
+    $self->writeh( $err, $out );
     $out;
 }
 
+method readh ( $h //= $in, %opt ) {
+    ( $h = ref $h ? $h : $self->$h )->refresh(%opt);
+}
+
 method writeh( $h, $line, %opt ) {
-    $h->refresh( method => 'say', callarg => [$line], %opt );
+    ( $h = ref $h ? $h : $self->$h )
+      ->refresh( method => 'say', callarg => [$line], keep_open => 1, %opt );
 }
 
 method info ($line) {
     $line = "$info_head $line" if $$head{info};
-    $self->errh($line);
+    $self->writeh( $err, $line );
 }
 
 method error ($line) {
     $line = "$err_head $line" if $$head{error};
-    $self->errh($line);
+    $self->writeh( $err, $line );
 }
 
 method fatal ( $line, $status = ( $? || 255 ), %opt ) {
@@ -141,7 +168,7 @@ method fatal ( $line, $status = ( $? || 255 ), %opt ) {
     error "Status ($status) must be between 0 and 255"
       unless $status >= 0 || $status <= 255;
 
-    $self->error( $line, %opt );
+    $self->writeh( $err, $line, %opt );
     croak $status;
 }
 
@@ -151,7 +178,7 @@ method success ($line) {
 }
 
 method msg ($line) {
-    $self->outh( ( $$head{msg} // '' ) . $line );
+    $self->writeh( $out, ( $$head{msg} // '' ) . $line );
 }
 
 # method headfmt( $instr, %opt ) {
@@ -160,26 +187,7 @@ method msg ($line) {
 
 # method getc    {     state $h = $self->refresh( $h, 'getc', fd => *STDIN, mode => 'r', %opt ); }
 
-method outh ( $line, %opt ) {
-    %opt = ( fd => *STDOUT, mode => '>' );
-    state $h //= IO::Handle::Common::Handle->new(%opt);
-    $h = $self->writeh( $h, $line, %opt );
-}
-
-method errh ( $line, %opt ) {
-    %opt = ( fd => *STDERR, mode => '>' );
-    state $h //= IO::Handle::Common::Handle->new(%opt);
-    $h = $self->writeh( $h, $line, %opt );
-}
-
-method readh (%opt) {
-    %opt = ( fd => *STDIN, mode => '<', %opt );
-    state $h //= IO::Handle::Common::Handle->new(%opt);
-    $h = $self->refresh(%opt);
-}
-
 method getline (%opt) {
-    %opt = ( fd => *STDIN, mode => '<', %opt );
     $self->readh( method => 'getline', %opt );
 }
 
