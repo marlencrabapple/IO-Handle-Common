@@ -1,6 +1,10 @@
 Revision history for IO-Handle-Common
 
 {{$NEXT}}
+  - Simplify code
+  - Parse dmsg @args for options to customize output per method call
+  - Add reader for open handles
+  - IO::Handle::Common::Base:: import refstr on APPLY
 
 0.01_3  2026-10-11 01:26:13 PDT
   - Fix @EXPORT/@EXPORT_OK (readline -> getline)

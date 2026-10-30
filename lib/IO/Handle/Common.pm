@@ -3,17 +3,18 @@ use Object::Pad ':experimental(:all)';
 package IO::Handle::Common;
 
 class IO::Handle::Common : does(IO::Handle::Common::Base);
-our $VERSION = '0.01_4';
+our $VERSION = '0.01_05';
 
 use utf8;
-use v5.40;
+use v5.44;
 
 use Carp qw'croak';
 use Const::Fast;
 use Data::Dumper::Names;
 use Devel::StackTrace::WithLexicals;
 use PadWalker;
-use IO::Handle::Common::Base qw'refstr';
+
+# use IO::Handle::Common::Base qw'refstr';
 use IO::Handle::Common::Handle;
 use Time::Piece;
 use Const::Fast;
@@ -21,22 +22,22 @@ use List::Util qw'any first pairmap none';
 use builtin;
 
 use parent 'Class::Exporter';
-use vars qw'@EXPORT @EXPORT_OK';
+use vars qw'$io @EXPORT @EXPORT_OK';
 
-@EXPORT    = qw(dmsg info success error fatal msg getline prompt);
+@EXPORT    = qw(IO dmsg info success error fatal msg getline prompt);
 @EXPORT_OK = (@EXPORT);
 
 field $debug : param = $ENV{DEBUG} // 0;
 
 field $dmsg_uplevel      : param : accessor = 3;
 field $dmsg_trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // 1;
-field $dmsg_skip_frames  : param : accessor = $ENV{DEBUG_SKIPFRAMES} // 1;
+field $dmsg_skip_frames  : param : accessor = $ENV{DEBUG_SKIPFRAMES} // 2;
 field $dmsg_pad          : param : accessor = "  ";
 field $dmsg_indent       : param : accessor = 1;
 
 field $info_head    : param : accessor = [qw'▶ ▷'];
 field $err_head     : param : accessor = ['❌️'];
-field $field_head   : param : accessor = [@$err_head];
+field $fatal_head   : param : accessor = [@$err_head];
 field $success_head : param : accessor = ['⭕️'];
 field $msg_head     : param : accessor = [undef];
 
@@ -60,7 +61,7 @@ field $err : reader =
 
 const my @head_key => qw(info err success fatal msg dmsg);
 
-field $head = { ( map { $_ => false } @head_key ) };
+field $head //= { ( map { $_ => false } @head_key ) };
 
 ADJUST : params (:$decorate //= undef) {
 
@@ -78,7 +79,7 @@ ADJUST : params (:$decorate //= undef) {
         elsif ( refstr($decorate) eq 'HASH' ) {
             foreach my ( $k, $v ) (%$decorate) {
                 $$head{$k} = 1;
-                eval "\$${k}_head = [\$v]";
+                $self->dmsg( eval "\$${k}_head = [\$v]" );
             }
         }
         elsif ( $decorate == 0 ) {
@@ -94,7 +95,12 @@ ADJUST : params (:$decorate //= undef) {
     # }
 };
 
-method decorate ( $enable = undef, %opt ) {
+method IO {
+    $self;
+}
+
+method decorate( $enable = undef, %opt ) {
+
     if ( defined $enable && !reftype($enable) ) {
         $$head{$_} = $enable ? true : false for keys %$head;
     }
@@ -110,15 +116,16 @@ method dmsg (@var) {
     return unless $debug // $ENV{DEBUG};
 
     my %opt;
+    my $i = scalar @var - 1;
+    
+    foreach my ( $v, $k ) ( reverse @var ) {
+        next
+          if none { $k && $k eq $_ }
+          qw'trace uplevel pad indent trace_indent skip_frames';
 
-    if ( scalar @var % 2 == 0 ) {
-        foreach my ( $v, $k ) ( reverse @var )
-        {    # reversed as option list is @var tail
-            state $i //= scalar @var - 1;
-            next if none { $k eq $_ } qw'trace';
-            $opt{$k} = $v;
-            delete $var[$_] for $i, $i--;
-        }
+        $opt{$k} //= $v;
+        sub ($i) { delete $var[$_] if exists $var[$_] }
+          ->($_) for $i, $i--;
     }
 
     my @caller = caller 1;
@@ -148,37 +155,53 @@ method readh ( $h //= $in, %opt ) {
 }
 
 method writeh( $h, $line, %opt ) {
+    const my $headkey_re => qr/_head$/;
+    my $headfield = $opt{headfield};
+    my $head =
+      ( $opt{headfield} && $$head{ ( $opt{headfield} =~ s/$headkey_re//gr ) } )
+      ? $self->$headfield->[0]
+      : undef;
+
+    $line = "$head $line" if $head;
+
     ( $h = ref $h ? $h : $self->$h )
       ->refresh( method => 'say', callarg => [$line], keep_open => 1, %opt );
 }
 
-method info ($line) {
-    $line = "$info_head $line" if $$head{info};
-    $self->writeh( $err, $line );
+method info ( $line, %opt ) {
+    $line = "$$info_head[0] $line" if $$head{info};
+    $self->writeh( delete $opt{handle} // $err, $line, %opt );
 }
 
-method error ($line) {
-    $line = "$err_head $line" if $$head{error};
-    $self->writeh( $err, $line );
+method error ( $line, %opt ) {
+
+    # my $head =
+    #   $opt{headfield} && $$head{ $opt{headfield} }
+    #   ? eval "\$\$$opt{headfield}[0]"
+    #   : $$err_head[0];
+
+    $line = "$$err_head[0] $line" if $$head{err};
+    $self->writeh( delete $opt{handle} // $err, $line, %opt );
 }
 
 method fatal ( $line, $status = ( $? || 255 ), %opt ) {
     $status = $status >> 8 if ( $status > 255 );
+    $opt{headfield} //= 'fatal_head';
 
-    error "Status ($status) must be between 0 and 255"
+    error "Status ($status) must be between 0 and 255", %opt,
       unless $status >= 0 || $status <= 255;
 
-    $self->writeh( $err, $line, %opt );
+    $self->writeh( delete $opt{handle} // $err, $line, %opt );
     croak $status;
 }
 
-method success ($line) {
-    $line = "$success_head $line" if $$head{success};
-    $self->outh($line);
+method success ( $line, $handle = $out ) {
+    $line = "$$success_head[0] $line" if $$head{success};
+    $self->writeh( $handle, $line );
 }
 
-method msg ($line) {
-    $self->writeh( $out, ( $$head{msg} // '' ) . $line );
+method msg ( $line, $handle = $out ) {
+    $self->writeh( $handle, ( $$msg_head[0] // '' ) . $line );
 }
 
 # method headfmt( $instr, %opt ) {
