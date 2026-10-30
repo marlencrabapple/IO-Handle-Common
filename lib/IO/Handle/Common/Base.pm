@@ -12,9 +12,10 @@ use Unicode::UTF8;
 use Const::Fast;
 use PadWalker qw'peek_my var_name';
 
+use subs 'array';
 use vars qw'@EXPORT @EXPORT_OK';
 
-@EXPORT_OK = qw'refstr';
+@EXPORT_OK = qw'refstr array ARRAY';
 @EXPORT    = @EXPORT_OK;
 
 our @EXPORT_SUB    = @EXPORT_OK;
@@ -57,4 +58,30 @@ method adjust ( $field, $val ) {
 sub refstr ($in) {
     reftype($in) || '';
 }
+
+sub ARRAY (@in) {
+    my @ret;
+
+    foreach my ($var) (@in) {
+        $var //= [];
+        my $type = reftype($var);
+
+        if ( !$type ) {
+            push @ret, [$var];
+        }
+        elsif ( $type ne 'ARRAY' ) {
+            my $name = PadWalker::var_name( 0, $var );
+            die "\$name must be an ARRAY ref or a scalar value. (Got: $type)";
+        }
+        elsif ( $type eq 'ARRAY' ) {
+            push @ret, $var;
+        }
+    }
+
+    # use Data::Dumper;
+    # say STDERR Dumper( \@in, \@ret );
+    @ret;
+}
+
+*array = \&ARRAY;
 

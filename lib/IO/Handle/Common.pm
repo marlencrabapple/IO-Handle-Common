@@ -3,7 +3,7 @@ use Object::Pad ':experimental(:all)';
 package IO::Handle::Common;
 
 class IO::Handle::Common : does(IO::Handle::Common::Base);
-our $VERSION = '0.01_05';
+our $VERSION = '0.01_06';
 
 use utf8;
 use v5.44;
@@ -22,20 +22,38 @@ use List::Util qw'any first pairmap none';
 use builtin;
 
 use parent 'Class::Exporter';
-use vars qw'$io @EXPORT @EXPORT_OK';
+use vars qw'@EXPORT @EXPORT_OK';
+
+const our @dmsg_allowed_opt =>
+  qw'trace uplevel pad indent trace_indent skip_frames filter_append filter_prepend filter chomp trim';
+
+const our $isnum => qr/^[0-9]+$/;
 
 @EXPORT    = qw(IO dmsg info success error fatal msg getline prompt);
 @EXPORT_OK = (@EXPORT);
 
-field $debug : param = $ENV{DEBUG} // 0;
+field $debug : param =
+    ( $ENV{DEBUG} && $ENV{DEBUG} =~ $isnum ) ? $ENV{DEBUG}
+  : defined $ENV{DEBUG}                      ? ( $ENV{DEBUG} ? 1 : 0 )
+  :                                            0;
 
 field $dmsg_uplevel      : param : accessor = 3;
-field $dmsg_trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // 1;
+field $dmsg_trace_indent : param : accessor = $ENV{DEBUG_INDENT}     // true;
 field $dmsg_skip_frames  : param : accessor = $ENV{DEBUG_SKIPFRAMES} // 2;
 field $dmsg_pad          : param : accessor = "  ";
-field $dmsg_indent       : param : accessor = 1;
+field $dmsg_indent       : param : accessor = true;
+field $dmsg_chomp        : param : accessor = true;
+field $dmsg_trim         : param : accessor = false;
+field $dmsg_allowed_opt  : param : accessor = \@dmsg_allowed_opt;
 
-field $info_head    : param : accessor = [qw'▶ ▷'];
+field $dmsg_filter : param : accessor = [];
+
+ADJUST : params (%param) {
+    push @$dmsg_filter,
+    grep { $_ && $_ eq 'CODE' } ARRAY( $param{dmsg_filter} );
+  }
+
+  field $info_head : param : accessor = [qw'▶ ▷'];
 field $err_head     : param : accessor = ['❌️'];
 field $fatal_head   : param : accessor = [@$err_head];
 field $success_head : param : accessor = ['⭕️'];
@@ -48,25 +66,22 @@ field $out : reader =
 field $err : reader =
   IO::Handle::Common::Handle->new( fd => *STDERR, mode => '>' );
 
-# field $dmsg_head    : accessor;
+field $dmsg_head : accessor;
 
-# ADJUST : params (:$dmsg_head = undef) {
-#     $dmsg_head //= [
-#         sub {
-#             $self->headfmt(
-#                 Time::Piece->now->to_string('%Y-%m-%d %H:%M:%S%f') );
-#         }
-#     ]
-# };
+ADJUST : params (:$dmsg_head = undef) {
+    $dmsg_head //= [
+        sub {
+            $self->headfmt(
+                Time::Piece->now->to_string('%Y-%m-%d %H:%M:%S%f') );
+        }
+    ]
+};
 
 const my @head_key => qw(info err success fatal msg dmsg);
 
 field $head //= { ( map { $_ => false } @head_key ) };
 
 ADJUST : params (:$decorate //= undef) {
-
-    # my $headfield_ptn = join "|", @$prepend_head;
-    # const my $headfield_re => qr/($headfield_ptn)+/i;
     if ($decorate) {
         if ( $decorate == 1 ) {
             $self->decorate(builtin::true);
@@ -89,10 +104,6 @@ ADJUST : params (:$decorate //= undef) {
     else {
         # $self->decorate
     }
-
-    # elsif ( !reftype($prepend_head) && $prepend_head =~ $headfield_re ) {
-    #     $self->adjust( $prepend_head, 1 );
-    # }
 };
 
 method IO {
@@ -117,11 +128,14 @@ method dmsg (@var) {
 
     my %opt;
     my $i = scalar @var - 1;
-    
+
     foreach my ( $v, $k ) ( reverse @var ) {
         next
-          if none { $k && $k eq $_ }
-          qw'trace uplevel pad indent trace_indent skip_frames';
+          if none { $k && $k eq $_ } (
+            scalar $self->dmsg_allowed_opt->@*
+            ? $self->dmsg_allowed_opt->@*
+            : @IO::Handle::Common::dmsg_allowed_opt
+          );
 
         $opt{$k} //= $v;
         sub ($i) { delete $var[$_] if exists $var[$_] }
@@ -135,7 +149,32 @@ method dmsg (@var) {
     local $Data::Dumper::Indent         = $opt{indent}  // $dmsg_indent;
 
     my $out;
-    $out .= Dumper(@var);
+
+    $out .= Dumper(
+        map {
+            my $var = $_;
+            chomp $var if $dmsg_chomp // $opt{chomp};
+            $var = builtin::trim($var) if $dmsg_trim // $opt{trim};
+
+            if (
+                my @filter = (
+                    scalar @$dmsg_filter
+                    ? (
+                        ARRAY( $opt{filter_prepend} ),
+                        @$dmsg_filter,
+                        ARRAY( $opt{filter_append} )
+                      )
+                    : ARRAY( $opt{filter} )
+                )
+              )
+            {
+                $_ = $_->($var) for grep { $_ && $_ eq 'CODE' } @filter;
+            }
+
+            $var
+        } @var
+    );
+
     $out .=
       ( $opt{trace} || $debug == 2 )
       ? join "\n",
@@ -174,12 +213,6 @@ method info ( $line, %opt ) {
 }
 
 method error ( $line, %opt ) {
-
-    # my $head =
-    #   $opt{headfield} && $$head{ $opt{headfield} }
-    #   ? eval "\$\$$opt{headfield}[0]"
-    #   : $$err_head[0];
-
     $line = "$$err_head[0] $line" if $$head{err};
     $self->writeh( delete $opt{handle} // $err, $line, %opt );
 }
@@ -208,10 +241,14 @@ method msg ( $line, $handle = $out ) {
 #     $instr;
 # }
 
-# method getc    {     state $h = $self->refresh( $h, 'getc', fd => *STDIN, mode => 'r', %opt ); }
+method headfmt { ... }
 
 method getline (%opt) {
     $self->readh( method => 'getline', %opt );
+}
+
+method getc (%opt) {
+    $self->readh( method => 'getc', %opt );
 }
 
 method prompt (%opt) {
